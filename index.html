@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>C++ Tester (Wandbox API)</title>
+    <title>C++ Tester (Paiza.IO API)</title>
     <style>
         :root {
             --vscode-font: Menlo, Monaco, Consolas, "Courier New", monospace;
@@ -109,10 +109,10 @@
             
             <div class="bottom-controls">
                 <div class="button-group">
-                    <button id="btn-sub1" class="sub-btn" onclick="runWandbox('sub-code1')">実行1</button>
-                    <button id="btn-sub2" class="sub-btn" onclick="runWandbox('sub-code2')">実行2</button>
-                    <button id="btn-sub3" class="sub-btn" onclick="runWandbox('sub-code3')">実行3</button>
-                    <button id="btn-main" onclick="runWandbox('code')">Main RUN</button>
+                    <button id="btn-sub1" class="sub-btn" onclick="runCode('sub-code1')">実行1</button>
+                    <button id="btn-sub2" class="sub-btn" onclick="runCode('sub-code2')">実行2</button>
+                    <button id="btn-sub3" class="sub-btn" onclick="runCode('sub-code3')">実行3</button>
+                    <button id="btn-main" onclick="runCode('code')">Main RUN</button>
                     <button class="init-btn" onclick="resetUI()" style="grid-column: span 2;">UIクリア</button>
                 </div>
                 
@@ -236,7 +236,7 @@
             });
         }
 
-        async function runWandbox(editorId) {
+        async function runCode(editorId) {
             const code = document.getElementById(editorId).value;
             const stdin = document.getElementById('input-data').value;
             const outputDiv = document.getElementById('output');
@@ -245,46 +245,60 @@
 
             resetUI();
             setButtonsState(true, '実行中...');
-            outputDiv.innerText = 'サーバーにコードを送信して実行中...';
-
-            // 最小構成のペイロードを作成
-            const payload = {
-                compiler: "gcc-head", // 一旦headに戻す
-                code: code
-            };
-            
-            // 入力データが存在する場合のみstdinを追加する
-            if (stdin.trim() !== "") {
-                payload.stdin = stdin;
-            }
+            outputDiv.innerText = 'Paiza.IOサーバーに送信中...';
 
             try {
-                const response = await fetch("https://wandbox.org/api/compile.json", {
+                // 1. 実行リクエストを送信 (Paiza.IO API)
+                const createRes = await fetch("https://api.paiza.io/runners/create", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({
+                        source_code: code,
+                        language: "cpp",
+                        input: stdin,
+                        api_key: "guest"
+                    })
                 });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP Error: ${response.status}`);
+                if (!createRes.ok) {
+                    throw new Error(`HTTP Error: ${createRes.status}`);
                 }
 
-                const res = await response.json();
+                const createData = await createRes.json();
+                if (createData.error) {
+                    throw new Error(createData.error);
+                }
                 
-                // コンパイルエラーまたは実行時エラーの確認
-                if (res.compiler_error || res.program_error) {
+                const id = createData.id;
+                outputDiv.innerText = '実行完了を待機中...';
+
+                // 2. 実行完了を待機 (1秒ごとにポーリング)
+                let status = "running";
+                let details;
+                while (status !== "completed") {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    const getRes = await fetch(`https://api.paiza.io/runners/get_details?id=${id}&api_key=guest`);
+                    details = await getRes.json();
+                    status = details.status;
+                }
+
+                // 3. 結果の判定と表示
+                if (details.build_result === "failure") {
+                    // コンパイルエラー
                     outputDiv.classList.add('error');
-                    let errorMsg = "";
-                    if (res.compiler_error) errorMsg += "[コンパイルエラー]\n" + res.compiler_error;
-                    if (res.program_error) errorMsg += "\n[実行時エラー]\n" + res.program_error;
-                    outputDiv.innerText = errorMsg.trim();
+                    outputDiv.innerText = "[コンパイルエラー]\n" + (details.build_stderr || "");
+                } else if (details.result !== "success") {
+                    // 実行時エラー (Timeout等含む)
+                    outputDiv.classList.add('error');
+                    outputDiv.innerText = "[実行時エラー]\n" + (details.stderr || "不明なエラー (メモリ超過/タイムアウトの可能性)");
                 } else {
+                    // 正常終了
                     outputDiv.classList.remove('error');
-                    const rawOutput = res.program_output || "";
+                    const rawOutput = details.stdout || "";
                     
-                    // 出力行から DEBUG:変数名=値 を抽出
+                    // DEBUG:変数名=値 を抽出
                     const lines = rawOutput.split('\n');
                     let normalOutput = "";
 
@@ -308,7 +322,6 @@
                 outputDiv.classList.add('error');
                 outputDiv.innerText = "[通信エラー]\n" + err.message;
             } finally {
-                // 連打による連続アクセスを防ぐため1.5秒後にボタンを有効化
                 setTimeout(() => {
                     setButtonsState(false);
                 }, 1500);
