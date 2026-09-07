@@ -247,12 +247,16 @@
             setButtonsState(true, '実行中...');
             outputDiv.innerText = 'サーバーにコードを送信して実行中...';
 
+            // 最小構成のペイロードを作成
             const payload = {
-                compiler: "gcc-13.2.0",
-                code: code,
-                stdin: stdin,
-                "compiler-option-raw": "-std=c++23\n-O3"
+                compiler: "gcc-head", // 一旦headに戻す
+                code: code
             };
+            
+            // 入力データが存在する場合のみstdinを追加する
+            if (stdin.trim() !== "") {
+                payload.stdin = stdin;
+            }
 
             try {
                 const response = await fetch("https://wandbox.org/api/compile.json", {
