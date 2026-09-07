@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>C++ Tester (完全オフライン/JSCPP)</title>
+    <title>C++ Tester (JSCPP Offline)</title>
     <style>
         :root {
             --vscode-font: Menlo, Monaco, Consolas, "Courier New", monospace;
@@ -70,7 +70,7 @@
         .number { color: #b5cea8; }
         .comment { color: #6a9955; }
     </style>
-    <!-- 通信エラーを回避するため、unpkgのCDNからJSCPPを読み込みます -->
+    <!-- JSCPPライブラリ（安定板 CDN） -->
     <script src="https://cdn.jsdelivr.net/npm/JSCPP@2.0.6/dist/JSCPP.es5.min.js"></script>
 </head>
 <body>
@@ -82,8 +82,7 @@
             </div>
             <div id="code-container" class="editor-container">
                 <div id="code-highlight" class="highlight-layer"></div>
-                <!-- JSCPPでは bits/stdc++.h は使えません。iostream を使用してください -->
-                <textarea id="code" class="code-textarea" spellcheck="false" placeholder="#include <iostream>&#10;#include <string>&#10;using namespace std;&#10;&#10;int main() {&#10;    int a = 100;&#10;    string s = &quot;AtCoder&quot;;&#10;    cout << &quot;Result: &quot; << a << &quot;, &quot; << s << endl;&#10;    &#10;    // 変数を右ペインに表示させるデバッグ出力&#10;    cout << &quot;DEBUG:a=&quot; << a << endl;&#10;    cout << &quot;DEBUG:s=&quot; << s << endl;&#10;    return 0;&#10;}"></textarea>
+                <textarea id="code" class="code-textarea" spellcheck="false" placeholder="#include <iostream>&#10;using namespace std;&#10;&#10;int main() {&#10;    int a = 100;&#10;    cout << &quot;Result: &quot; << a << endl;&#10;    &#10;    // 変数を右ペインに抽出するためのデバッグ出力&#10;    cout << &quot;DEBUG:a=&quot; << a << endl;&#10;    return 0;&#10;}"></textarea>
             </div>
             
             <div class="middle-controls">
@@ -234,10 +233,9 @@
             if (!code.trim()) return;
             resetUI();
             
-            // JSCPPライブラリのロード確認
             if (typeof JSCPP === 'undefined') {
                 outputDiv.classList.add('error');
-                outputDiv.innerText = "[エラー] JSCPPライブラリが読み込めていません。\n通信環境を確認するか、ページをリロードしてください。";
+                outputDiv.innerText = "[エラー] JSCPPライブラリが読み込めていません。";
                 return;
             }
 
@@ -248,11 +246,10 @@
                         rawOutput += str;
                     }
                 },
-                maxTimeout: 5000 // 5秒で強制終了
+                maxTimeout: 5000 
             };
 
             try {
-                // ブラウザ内で完全にオフライン実行
                 JSCPP.run(code, input, config);
 
                 const lines = rawOutput.split('\n');
@@ -275,7 +272,6 @@
                 
             } catch (e) {
                 outputDiv.classList.add('error');
-                // e.message が無い場合は e 本体をそのまま表示する
                 outputDiv.innerText = "[実行エラー]\n" + (e.message || e);
             }
         }
