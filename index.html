@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C++ Tester (JSCPP)</title>
+    <style>
+        :root {
+            --vscode-font: Menlo, Monaco, Consolas, "Courier New", monospace;
+        }
+
+        body { font-family: sans-serif; margin: 0; padding: 20px; background-color: #1e1e1e; color: #d4d4d4; height: 100vh; box-sizing: border-box; }
+        .container { display: flex; width: 100%; height: calc(100% - 40px); gap: 20px; }
+        .left-pane { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+        
+        .right-pane { width: 180px; flex-shrink: 0; display: flex; flex-direction: column; background: #252526; padding: 15px 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        
+        .editor-container { position: relative; background-color: #1e1e1e; border: 1px solid #444; border-radius: 4px; display: flex; flex-direction: column; min-height: 0; }
+        .editor-container:focus-within { border-color: #007acc; }
+        #code-container { flex: 4; margin-bottom: 10px; }
+        
+        .highlight-layer, .code-textarea { position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 15px; box-sizing: border-box; font-family: var(--vscode-font); font-size: 16px; line-height: 1.5; margin: 0; border: none; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+        .highlight-layer { color: #d4d4d4; pointer-events: none; }
+        .code-textarea { background: transparent; color: transparent; caret-color: #d4d4d4; resize: none; outline: none; }
+        
+        #sub-code1-container, #sub-code2-container, #sub-code3-container { flex: 1; }
+        #sub-code1-container .highlight-layer, #sub-code1-container .code-textarea,
+        #sub-code2-container .highlight-layer, #sub-code2-container .code-textarea,
+        #sub-code3-container .highlight-layer, #sub-code3-container .code-textarea { padding: 10px; font-size: 14px;}
+        
+        #input-data { flex: 1; resize: none; padding: 10px 10px; font-family: var(--vscode-font); font-size: 14px; background-color: #1e1e1e; color: #d4d4d4; border: 1px solid #444; border-radius: 4px; line-height: 1.5; box-sizing: border-box; width: 100%; margin: 0; min-height: 0; }
+        #input-data:focus { outline: none; border-color: #007acc; }
+        
+        .middle-controls { display: flex; gap: 10px; flex: 1.5; margin-bottom: 15px; min-height: 0; }
+        .middle-box { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+        
+        .bottom-controls { display: flex; gap: 10px; flex-shrink: 0; height: 150px; }
+        
+        .button-group { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; min-height: 0; }
+        button { font-size: 14px; font-weight: bold; cursor: pointer; background-color: #007acc; color: white; border: none; border-radius: 4px; transition: background-color 0.2s; margin: 0; width: 100%; height: 100%; min-height: 0; }
+        button:hover { background-color: #005f9e; }
+        button.sub-btn { background-color: #0f8f62; }
+        button.sub-btn:hover { background-color: #0b6b49; }
+        button.init-btn { background-color: #b33939; }
+        button.init-btn:hover { background-color: #8b2c2c; }
+        
+        .input-wrapper { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+        .output-wrapper { flex: 2; display: flex; flex-direction: column; min-height: 0; } 
+        
+        .pane-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; flex-shrink: 0; }
+        .pane-header h3 { margin: 0; font-size: 16px; color: #bbb; }
+        h3 { margin-top: 0; margin-bottom: 8px; font-size: 16px; color: #bbb; flex-shrink: 0; }
+        
+        .stats { font-size: 12px; color: #888; font-family: var(--vscode-font); flex-shrink: 0; }
+        .output-area { font-family: var(--vscode-font); flex: 1; background: #1e1e1e; padding: 10px 15px; border: 1px solid #444; border-radius: 4px; font-size: 14px; white-space: pre-wrap; overflow-y: auto; word-break: break-all; margin: 0; min-height: 0; color: #4ec9b0; }
+        
+        .memory-header { display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin-bottom: 10px; flex-shrink: 0; }
+        
+        .memory-container { display: flex; flex-direction: column; gap: 4px; flex: 1; overflow-y: auto; padding-right: 2px; scroll-behavior: smooth; min-height: 0; }
+        .memory-cell { width: 100%; min-height: 30px; display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; padding: 0 8px; border: 1px solid #555; background-color: #333; font-family: var(--vscode-font); border-radius: 4px; flex-shrink: 0; }
+        .memory-cell.updated { border-color: #d48844; background-color: #4d3319; }
+        .cell-index { color: #9cdcfe; font-size: 12px; font-weight: bold; font-family: var(--vscode-font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 50%; }
+        .cell-value { font-size: 14px; font-weight: bold; color: #ce9178; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 50%; }
+        
+        .keyword { color: #569cd6; font-weight: bold; }
+        .type { color: #4ec9b0; }
+        .string { color: #ce9178; }
+        .number { color: #b5cea8; }
+        .comment { color: #6a9955; }
+    </style>
+    <!-- JSCPP ライブラリの読み込み -->
+    <script src="https://cdn.jsdelivr.net/npm/jscpp@2.0.8/lib/JSCPP.es5.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="left-pane">
+            <div class="pane-header">
+                <h3>Code</h3>
+                <span id="code-stats" class="stats">Length: 0 | Pos: 0</span>
+            </div>
+            <div id="code-container" class="editor-container">
+                <div id="code-highlight" class="highlight-layer"></div>
+                <textarea id="code" class="code-textarea" spellcheck="false" placeholder="#include <iostream>&#10;using namespace std;&#10;&#10;int main() {&#10;    int a = 10;&#10;    cout << &quot;Hello C++&quot; << endl;&#10;    &#10;    // 変数を右ペインに表示するためのデバッグ出力&#10;    cout << &quot;DEBUG:a=&quot; << a << endl;&#10;    return 0;&#10;}"></textarea>
+            </div>
+            
+            <div class="middle-controls">
+                <div class="middle-box">
+                    <h3>独立実行1</h3>
+                    <div id="sub-code1-container" class="editor-container">
+                        <div id="sub-code1-highlight" class="highlight-layer"></div>
+                        <textarea id="sub-code1" class="code-textarea" spellcheck="false" placeholder="int main() {&#10;  int b = 20;&#10;  cout << &quot;DEBUG:b=&quot; << b << endl;&#10;}"></textarea>
+                    </div>
+                </div>
+                <div class="middle-box">
+                    <h3>独立実行2</h3>
+                    <div id="sub-code2-container" class="editor-container">
+                        <div id="sub-code2-highlight" class="highlight-layer"></div>
+                        <textarea id="sub-code2" class="code-textarea" spellcheck="false" placeholder="int main() {&#10;}"></textarea>
+                    </div>
+                </div>
+                <div class="middle-box">
+                    <h3>独立実行3</h3>
+                    <div id="sub-code3-container" class="editor-container">
+                        <div id="sub-code3-highlight" class="highlight-layer"></div>
+                        <textarea id="sub-code3" class="code-textarea" spellcheck="false" placeholder="int main() {&#10;}"></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bottom-controls">
+                <div class="button-group">
+                    <button class="sub-btn" onclick="executeEditor('sub-code1')">実行1</button>
+                    <button class="sub-btn" onclick="executeEditor('sub-code2')">実行2</button>
+                    <button class="sub-btn" onclick="executeEditor('sub-code3')">実行3</button>
+                    <button onclick="executeEditor('code')">Main RUN</button>
+                    <button class="init-btn" onclick="resetUI()" style="grid-column: span 2;">UIクリア</button>
+                </div>
+                
+                <div class="input-wrapper">
+                    <div class="pane-header">
+                        <h3>Input (cin用)</h3>
+                    </div>
+                    <textarea id="input-data" spellcheck="false" placeholder="標準入力データ..."></textarea>
+                </div>
+                
+                <div class="output-wrapper">
+                    <div class="pane-header">
+                        <h3>Console Output</h3>
+                    </div>
+                    <div id="output" class="output-area"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-pane">
+            <div class="memory-header">
+                <div style="font-size: 14px; color: #888; font-weight: bold; text-align: center;">抽出された変数</div>
+                <div style="font-size: 10px; color: #555; text-align: center;">DEBUG:変数名=値 をフック</div>
+            </div>
+            <div id="memory" class="memory-container">
+                <!-- Variables will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function escapeHtml(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function highlightCPPSyntax(text) {
+            let html = escapeHtml(text);
+            html = html.replace(/(&quot;.*?&quot;)/g, '<span class="string">$1</span>');
+            html = html.replace(/\b(int|float|double|char|string|auto|void|bool)\b/g, '<span class="type">$1</span>');
+            html = html.replace(/\b(return|if|else|for|while|include|using|namespace|cout|cin|endl)\b/g, '<span class="keyword">$1</span>');
+            html = html.replace(/\b(\d+)\b/g, '<span class="number">$1</span>');
+            html = html.replace(/(\/\/.*)/g, '<span class="comment">$1</span>');
+            if (text.endsWith('\n')) html += ' ';
+            return html;
+        }
+
+        function setupEditor(id) {
+            const textarea = document.getElementById(id);
+            const highlightDiv = document.getElementById(id + '-highlight');
+            
+            const update = () => {
+                highlightDiv.innerHTML = highlightCPPSyntax(textarea.value);
+                if (id === 'code') {
+                    document.getElementById('code-stats').innerText = `Length: ${textarea.value.length} | Pos: ${textarea.selectionStart}`;
+                }
+            };
+
+            ['input', 'keyup', 'click', 'focus'].forEach(evt => textarea.addEventListener(evt, update));
+
+            textarea.addEventListener('scroll', () => {
+                highlightDiv.scrollTop = textarea.scrollTop;
+                highlightDiv.scrollLeft = textarea.scrollLeft;
+            });
+
+            textarea.addEventListener('keydown', function(e) {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    const start = this.selectionStart;
+                    const end = this.selectionEnd;
+                    const val = this.value;
+                    this.value = val.substring(0, start) + '    ' + val.substring(end);
+                    this.selectionStart = this.selectionEnd = start + 4;
+                    update();
+                }
+            });
+            update(); 
+        }
+
+        let memoryVars = {};
+
+        function renderMemoryDOM() {
+            const memoryDiv = document.getElementById('memory');
+            memoryDiv.innerHTML = '';
+            
+            if (Object.keys(memoryVars).length === 0) {
+                memoryDiv.innerHTML = '<div style="color: #666; font-size: 12px; text-align: center; margin-top: 20px;">データなし</div>';
+                return;
+            }
+
+            for (let vName in memoryVars) {
+                let htmlString = `
+                    <div id="var-${vName}" class="memory-cell updated">
+                        <span class="cell-index">${escapeHtml(vName)}</span>
+                        <span class="cell-value">${escapeHtml(String(memoryVars[vName]))}</span>
+                    </div>`;
+                memoryDiv.insertAdjacentHTML('beforeend', htmlString);
+                
+                setTimeout(() => {
+                    let cell = document.getElementById(`var-${vName}`);
+                    if (cell) cell.classList.remove('updated');
+                }, 500);
+            }
+        }
+
+        function resetUI() {
+            memoryVars = {};
+            document.getElementById('output').innerText = '';
+            renderMemoryDOM();
+        }
+
+        // 指定したテキストエリアのC++コードをJSCPPで実行する
+        function executeEditor(editorId) {
+            const code = document.getElementById(editorId).value;
+            const input = document.getElementById(editorId === 'code' ? 'input-data' : 'input-data').value;
+            const outputDiv = document.getElementById('output');
+            
+            resetUI();
+            
+            let rawOutput = "";
+
+            const config = {
+                stdio: {
+                    write: function(str) {
+                        rawOutput += str;
+                    }
+                },
+                maxTimeout: 5000 // 5秒で強制終了
+            };
+
+            try {
+                // JSCPPによる本物のC++実行
+                JSCPP.run(code, input, config);
+
+                // 出力を解析して変数リストとコンソール出力に分離（アプローチA）
+                const lines = rawOutput.split('\n');
+                let consoleOutput = "";
+                
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    // "DEBUG:変数名=値" のフォーマットを検知
+                    const match = line.match(/^DEBUG:([a-zA-Z_]\w*)=(.*)$/);
+                    if (match) {
+                        memoryVars[match[1]] = match[2];
+                    } else {
+                        // 最後の空行以外は通常の出力として扱う
+                        if (i !== lines.length - 1 || line !== "") {
+                            consoleOutput += line + '\n';
+                        }
+                    }
+                }
+                
+                outputDiv.innerText = consoleOutput;
+                renderMemoryDOM();
+                
+            } catch (e) {
+                outputDiv.innerText = "[実行エラー]\n" + e.message;
+            }
+        }
+
+        window.onload = function() {
+            resetUI();
+            setupEditor('code');
+            setupEditor('sub-code1');
+            setupEditor('sub-code2');
+            setupEditor('sub-code3');
+        };
+    </script>
+</body>
+</html>
