@@ -275,7 +275,8 @@
                 
             } catch (e) {
                 outputDiv.classList.add('error');
-                outputDiv.innerText = "[実行エラー]\n" + e.message;
+                // e.message が無い場合は e 本体をそのまま表示する
+                outputDiv.innerText = "[実行エラー]\n" + (e.message || e);
             }
         }
 
